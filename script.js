@@ -38,6 +38,7 @@ for(let font of fonts) {
     })
 
     fontItem.addEventListener("mousedown", (event) => {
+        event.preventDefault()
         currentFont = font
         let currFont = document.getElementById("font-current")
         currFont.children[0].style.fontFamily = font
