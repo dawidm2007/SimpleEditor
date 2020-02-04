@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Simple Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="toolbar">
+        <button onclick="bold()" class="btn">  <!-- Przy div zamiast onclick dajemy onmousedown -->
+            bold
+        </button>
+        <button onclick="italic()" class="btn">
+            italic
+        </button>
+
+        <div class="font">
+            <div id="font-current" class="font-item">
+                <h1 style="font-family: 'Calibri' ">Calibri</h1>
+            </div>
+
+            <div id="font-list">
+                
+            </div>
+        </div>
+    </div>
+    <div id="editor" contenteditable>
+        
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
