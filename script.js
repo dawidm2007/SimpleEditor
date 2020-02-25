@@ -19,7 +19,7 @@ let fonts = [
     "Ink Free",
     "Comic Sans MS"
 ]
-
+let range = null
 let currentFont = "Calibri"
 
 let fontList = document.getElementById("font-list")
@@ -46,8 +46,30 @@ for(let font of fonts) {
     })
     
     fontList.appendChild(fontItem)
-}
+}                                                      // ctrl + shift + r (pełne restart strony w przeglądarce)
 
 fontList.addEventListener("mouseleave", () => {
     document.execCommand("fontName", false, currentFont)
+})
+
+let editor = document.getElementById("editor")
+document.getElementById("editor").addEventListener('blur', (e) => {
+    let selection = window.getSelection()
+    range = selection.getRangeAt(0)
+})
+
+let fontSize = document.getElementById("font-size")
+fontSize.addEventListener('input', (e) => { // (e) oznacza (event)
+    let newFontSize = parseInt(e.target.value)
+    if(!isNaN(newFontSize)){            // ! oznacza (jeśli nie)
+        let selection = window.getSelection()
+        selection.removeAllRanges()  
+        selection.addRange(range)
+        document.execCommand("fontSize", false, newFontSize)
+    }
+})
+
+fontSize.addEventListener("mousedown", (e) => {
+    let selection = window.getSelection()
+    range = selection.getRangeAt(0)
 })
