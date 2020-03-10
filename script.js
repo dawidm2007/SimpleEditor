@@ -95,10 +95,11 @@ let state = {
 }
 
 
-document.getElementById("editor").addEventListener("keydown", (e) =>{
-    e.preventDefault()
-    let key = e.key
-    if(key == 'Enter') key = '<br>'
-    state.value += key
-    editor.innerHTML = state.value
-})
+document.getElementById("editor")
+    .addEventListener("keydown", (e) =>{
+        e.preventDefault()
+        let key = e.key
+        if(key == 'Enter') key = '<br>'
+        state.value += key
+        editor.innerHTML = state.value
+    })      
