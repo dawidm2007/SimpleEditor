@@ -1,3 +1,12 @@
+p {
+    min-height: 16px;
+    font-size: 16px;
+}
+
+h1, h2, h3, h4 {
+    min-height: 16px;
+}
+
 #toolbar {
     width: 80%;
     height: 100px;
@@ -53,7 +62,7 @@
 
 #editor {
     width: 80%;
-    height: 400px;
+    min-height: 400px;
     margin: 0 auto;
     border: 1px solid black;
 }
