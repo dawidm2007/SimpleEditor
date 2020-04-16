@@ -7,50 +7,47 @@
     <title>Simple Editor</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <div id="toolbar">
-        <button onclick="bold()" class="btn">  <!-- Przy div zamiast onclick dajemy onmousedown -->
-            bold
-        </button>
-        <button onclick="italic()" class="btn">
-            italic
-        </button>
-        
-        <button onclick="copy()" class="btn">
-            copy
-        </button>
-        <button onclick="paste()" class="btn">
-            paste
-        </button>
+    <body>
+        <div id="toolbar">
+            <button onclick="bold()" class="btn">
+                bold
+            </button>
+            <button onclick="italic()" class="btn">
+                italic
+            </button>
 
-        <div class="font">
-            <div id="font-current" class="font-item">
-                <h1 style="font-family: 'Calibri' ">Calibri</h1>
+            <button onclick="copy()" class="btn">
+                copy
+            </button>
+            <button onclick="paste()" class="btn">
+                paste
+            </button>
+
+            <div class="font">
+                <div id="font-current" class="font-item">
+                    <h1 style="font-family: 'Calibri'">
+                        Calibri
+                    </h1>
+                </div>
+                <div id="font-list"> 
+                </div>
             </div>
 
-            <div id="font-list">
-                
+            <div class="font-size">
+                <input id="font-size" type="number" value="1">
             </div>
 
-
-        </div>
-
-        <div class="font-size">
-            <input id="font-size" type="number" value="1">
-        </div>
-
-        <div class="tag-list">
-            <div id="tag-active" class="tag-item">
-            </div>
-            <div id="tags">
-               
+            <div class="tag-list">
+                <div id="tag-active" class="tag-item">
+                </div>
+                <div id="tags">
+                </div>
             </div>
         </div>
-    </div>
 
-    <div id="editor" >
-        
-    </div>
-    <script src="editor.js"></script>
-</body>
+        <div id="editor">
+        </div>
+
+        <script src="editor.js"></script>
+    </body>
 </html>

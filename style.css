@@ -22,10 +22,10 @@ h1, h2, h3, h4 {
 }
 
 .font {
+    position: relative;
     height: 50px;
     width: 200px;
     margin-left: 20px;
-    position: relative;
 }
 
 .font-item {
@@ -52,7 +52,7 @@ h1, h2, h3, h4 {
     flex-direction: column;
 }
 
-#font-current:hover ~ #font-list {
+#font-current:hover ~ #font-list{
     display: flex;
 }
 
@@ -69,7 +69,7 @@ h1, h2, h3, h4 {
 
 .font-size {
     height: 50px;
-    width: 50px;
+    width: 50px; 
     margin-left: 20px;
 }
 
@@ -81,6 +81,7 @@ h1, h2, h3, h4 {
     margin: 0;
     box-sizing: border-box;
 }
+
 
 span {
     color: rgba(0,0,0,.4)
