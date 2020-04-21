@@ -3,7 +3,7 @@ document.execCommand('defaultParagraphSeparator', false, 'p');
 function Editor(settings) {
     let editor = settings.editor
     let placeholderTag = null
-    let cursor = {el: null, offset: 0}
+    let cursor = { el: null, offset: 0 }
 
     {
         editor.setAttribute('contenteditable', 'true');
@@ -18,7 +18,7 @@ function Editor(settings) {
 
         let fontSize = document.getElementById('font-size')
         fontSize.value = 16
-        
+
         fontSize.addEventListener('input', (e) => {
             editor.focus()
             let range = new Range()
@@ -27,12 +27,61 @@ function Editor(settings) {
             window.getSelection().removeAllRanges()
             window.getSelection().addRange(range)
 
-            if(cursor.el.nodeName = '#text'){
+            if(cursor.el.nodeName == '#text'){
                 cursor.el.parentElement.style.fontSize = `${e.target.value}px`
             }else {
-                cursor.el.style.fontSize = e.target.value
+                cursor.el.style.fontSize = `${e.target.value}px`;
             }
         })
+
+        let fonts = [
+          'Calibri',
+          'Bebas Neue',
+          'DejaVu Serif',
+          'Impact',
+          'Segoe Script',
+          'Comic Sans MS',
+          'System',
+        ];
+
+        let currentFont = 'Calibri';
+        let fontList = document.getElementById('font-list');
+
+        for (let font of fonts) {
+          let fontItem = document.createElement('div');
+          fontItem.setAttribute('class', 'font-item');
+          let fontName = document.createElement('h1');
+          fontName.style.fontFamily = font;
+          fontName.textContent = font;
+          fontItem.appendChild(fontName);
+
+          fontItem.addEventListener('mouseover', () => {
+                if (cursor.el.nodeName == '#text') {
+                    cursor.el.parentElement.style.fontFamily = font;
+                } else {
+                    cursor.el.style.fontFamily = font;
+                }
+          });
+
+          fontItem.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+            currentFont = font;
+            let currFont = document.getElementById('font-current');
+            currFont.children[0].style.fontFamily = font;
+            currFont.children[0].textContent = font;
+          });
+
+          fontList.appendChild(fontItem);
+        }
+
+        fontList.addEventListener('mouseleave', () => {
+            if (cursor.el.nodeName == '#text') {
+                cursor.el.parentElement.style.fontFamily = currentFont;
+            } else {
+                cursor.el.style.fontFamily = currentFont;
+            }
+        });
+
 
         for (let tag of ['p', 'h1', 'h2', 'h3', 'h4']) {
             let div = document.createElement('div');
@@ -46,9 +95,12 @@ function Editor(settings) {
 
                 if(cursor.startContainer.nodeName == '#text'){
                     newEl.innerHTML = cursor.startContainer.parentNode.innerHTML;
-                    editor.replaceChild(newEl, cursor.startContainer.parentNode);
+                    newEl.style.cssText = cursor.startContainer.parentElement.style.cssText
+                    console.log(newEl.style.cssText);
+                    editor.replaceChild(newEl, cursor.startContainer.parentElement);
                 } else {
                     newEl.innerHTML = cursor.startContainer.innerHTML;
+                    newEl.style.cssText = cursor.startContainer.style.cssText
                     editor.replaceChild(newEl, cursor.startContainer);
                 }
 
@@ -65,11 +117,40 @@ function Editor(settings) {
         }
     }
 
-        /* END SET TOOLBAR */
 
+    let bold = document.getElementById("bold")
+    bold.addEventListener('click', (e) => {
+        let range = window.getSelection().getRangeAt(0)
+        /* 
+
+            <div id="editor">
+                <p>start</p>  -> startContainer
+                <p><span style="font-weight: bold;">bbb</span></p>  -> startContainer.nextSibiling
+                <p>ccc</p>  -> startContainer.nextSibiling.nextSibiling
+                <p>end</p>  -> endContainer
+            </div>
+        */
+
+        let currentEl = range.startContainer
+        
+
+        while (currentEl !== range.endContainer.parentElement) {
+            if (currentEl.nodeName == '#text') {
+                currentEl = currentEl.parentElement.nextElementSibling;
+            } else {
+                currentEl = currentEl.nextElementSibling;
+            }
+
+            currentEl.innerHTML = `<span style="font-weight: bold;">${currentEl.innerHTML}</span>`;
+            console.log(range.endContainer);
+        }
+
+    })
+
+    /* END SETUP TOOLBAR */ 
     editor.addEventListener('click', (e) => {
-        cursor.el = window.getSelection().getRangeAt(0).startContainer
-        cursor.offset = window.getSelection().getRangeAt(0).startOffset
+        cursor.el = window.getSelection().getRangeAt(0).startContainer;
+        cursor.offset = window.getSelection().getRangeAt(0).startOffset;
     })
 
     editor.addEventListener('keydown', (e) => {
@@ -79,15 +160,13 @@ function Editor(settings) {
                         e.preventDefault()
                 }
             default:
-                cursor.el = window.getSelection().getRangeAt(0).startContainer
-                cursor.offset = window.getSelection().getRangeAt(0).startOffset
                 break;
         }
     })
 
     editor.addEventListener('keyup', (e) => {
-        cursor.el = window.getSelection().getRangeAt(0).startContainer
-        cursor.offset = window.getSelection().getRangeAt(0).startOffset
+        cursor.el = window.getSelection().getRangeAt(0).startContainer;
+        cursor.offset = window.getSelection().getRangeAt(0).startOffset;
     })
 
     editor.addEventListener('focus', (e) => {
@@ -118,8 +197,3 @@ var richTextEditor = new Editor({
   editor: document.getElementById('editor'),
   placeholder: 'Rozpocznij pisanie artykułu',
 });
-
-
-function Toolbar() {
-
-}
