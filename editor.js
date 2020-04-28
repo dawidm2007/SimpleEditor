@@ -174,6 +174,62 @@ function Editor(settings) {
 
     })
 
+    let italic = document.getElementById("italic")
+    italic.addEventListener('click', (e) => {
+        let range = window.getSelection().getRangeAt(0)
+        let startEl = getElementFromRange(range.startContainer)
+        let endEl = getElementFromRange(range.endContainer)
+
+        let rangeClone = {
+            startOffset: range.startOffset,
+            endOffset: range.endOffset,
+            startContainer: startEl,
+            endContainer: endEl,
+        };
+
+        if(startEl === endEl){
+            let str = startEl.textContent
+            let textStart = str.substring(0, range.startOffset)
+            let textEnd = str.substring(range.endOffset,startEl.textContent.length - 1)
+            let textToItalic = str.substring(range.startOffset,range.endOffset)
+            startEl.innerHTML = 
+                `${textStart}<span style="font-style: italic; color: black;">${textToItalic}</span>${textEnd}`;
+            
+            rangeClone.startContainer = startEl.children[0].childNodes[0];
+            rangeClone.endContainer = startEl.children[0].childNodes[0];
+            rangeClone.endOffset = rangeClone.endOffset - rangeClone.startOffset
+            
+        } else {
+            let offset = range.startOffset;
+            while(startEl != endEl) {
+                let str = startEl.textContent
+                let textStart = str.substring(0, offset);
+                let textToItalic = str.substring(offset, str.length - 1);
+                startEl.innerHTML = 
+                    `${textStart}<span style="font-style: italic; color: black;">${textToItalic}</span>`;
+                if(offset != 0){
+                    rangeClone.startContainer = startEl.children[0].childNodes[0];
+                }
+                offset = 0
+                startEl = startEl.nextSibling
+            }
+            let str = endEl.textContent;
+            let textStart = str.substring(0, range.endOffset);
+            let textEnd = str.substring(range.endOffset, str.length - 1);
+            startEl.innerHTML = `<span style="font-style: italic; color: black;">${textStart}</span>${textEnd}`;
+            rangeClone.endContainer = startEl.children[0].childNodes[0];
+        }
+
+        let newRange = new Range()
+        newRange.setStart(rangeClone.startContainer, 0)
+        newRange.setEnd(rangeClone.endContainer, rangeClone.endOffset);
+        
+        let selection = window.getSelection()
+        selection.removeAllRanges()
+        selection.addRange(newRange)
+
+    })
+
     function getElementFromRange(node) {
         let currentEl = isElement(node)
           ? node
