@@ -121,31 +121,76 @@ function Editor(settings) {
     let bold = document.getElementById("bold")
     bold.addEventListener('click', (e) => {
         let range = window.getSelection().getRangeAt(0)
-        /* 
+        let startEl = getElementFromRange(range.startContainer)
+        let endEl = getElementFromRange(range.endContainer)
 
-            <div id="editor">
-                <p>start</p>  -> startContainer
-                <p><span style="font-weight: bold;">bbb</span></p>  -> startContainer.nextSibiling
-                <p>ccc</p>  -> startContainer.nextSibiling.nextSibiling
-                <p>end</p>  -> endContainer
-            </div>
-        */
+        let rangeClone = {
+            startOffset: range.startOffset,
+            endOffset: range.endOffset,
+            startContainer: startEl,
+            endContainer: endEl,
+        };
 
-        let currentEl = range.startContainer
-        
-
-        while (currentEl !== range.endContainer.parentElement) {
-            if (currentEl.nodeName == '#text') {
-                currentEl = currentEl.parentElement.nextElementSibling;
-            } else {
-                currentEl = currentEl.nextElementSibling;
+        if(startEl === endEl){
+            let str = startEl.textContent
+            let textStart = str.substring(0, range.startOffset)
+            let textEnd = str.substring(range.endOffset,startEl.textContent.length - 1)
+            let textToBold = str.substring(range.startOffset,range.endOffset)
+            startEl.innerHTML = 
+                `${textStart}<span style="font-weight: bold; color: black;">${textToBold}</span>${textEnd}`;
+            
+            rangeClone.startContainer = startEl.children[0].childNodes[0];
+            rangeClone.endContainer = startEl.children[0].childNodes[0];
+            rangeClone.endOffset = rangeClone.endOffset - rangeClone.startOffset
+            
+        } else {
+            let offset = range.startOffset;
+            while(startEl != endEl) {
+                let str = startEl.textContent
+                let textStart = str.substring(0, offset);
+                let textToBold = str.substring(offset, str.length - 1);
+                startEl.innerHTML = 
+                    `${textStart}<span style="font-weight: bold; color: black;">${textToBold}</span>`;
+                if(offset != 0){
+                    rangeClone.startContainer = startEl.children[0].childNodes[0];
+                }
+                offset = 0
+                startEl = startEl.nextSibling
             }
-
-            currentEl.innerHTML = `<span style="font-weight: bold;">${currentEl.innerHTML}</span>`;
-            console.log(range.endContainer);
+            let str = endEl.textContent;
+            let textStart = str.substring(0, range.endOffset);
+            let textEnd = str.substring(range.endOffset, str.length - 1);
+            startEl.innerHTML = `<span style="font-weight: bold; color: black;">${textStart}</span>${textEnd}`;
+            rangeClone.endContainer = startEl.children[0].childNodes[0];
         }
 
+        let newRange = new Range()
+        newRange.setStart(rangeClone.startContainer, 0)
+        newRange.setEnd(rangeClone.endContainer, rangeClone.endOffset);
+        
+        let selection = window.getSelection()
+        selection.removeAllRanges()
+        selection.addRange(newRange)
+
     })
+
+    function getElementFromRange(node) {
+        let currentEl = isElement(node)
+          ? node
+          : node.parentElement;
+        currentEl = isModifier(currentEl) ? currentEl.parentElement : currentEl;
+        return currentEl
+    }
+
+    function isElement(node) {
+        if(node.nodeName === '#text') return false
+        else return true
+    }
+
+    function isModifier(node){
+        if(node.nodeName === 'SPAN') return true
+        else return false
+    }
 
     /* END SETUP TOOLBAR */ 
     editor.addEventListener('click', (e) => {
