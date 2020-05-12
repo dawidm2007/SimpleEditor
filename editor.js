@@ -105,9 +105,9 @@ function Editor(settings) {
 
     let bold = document.getElementById("bold")
 
-
+// OD TEGO MOMENTU ZACZAĆ!!!!
     bold.addEventListener('click', (e) => {
-        let selection = getSelection()
+        let selection = getSelection()// <- getSelection?
 
         let startEl = selection.startNode
         let endEl = selection.endNode
@@ -124,13 +124,20 @@ function Editor(settings) {
         };
 
         if(startEl === endEl){
+            console.log("bold")
             let str = startEl.textContent
-            let textStart = str.substring(0, range.startOffset)
-            let textEnd = str.substring(range.endOffset,startEl.textContent.length - 1)
-            let textToBold = str.substring(range.startOffset,range.endOffset)
+            let textStart = str.substring(0, rangeClone.startOffset)
+            let textEnd = str.substring(
+              rangeClone.endOffset,
+              startEl.textContent.length
+            );
+            let textToBold = str.substring(
+              rangeClone.startOffset,
+              rangeClone.endOffset
+            );
             startEl.innerHTML = 
                 `${textStart}<span style="font-weight: bold; color: black;">${textToBold}</span>${textEnd}`;
-            
+            // THIS IS NOT OK!!!! textToBold podatne na XSS
             rangeClone.startContainer = startEl.children[0].childNodes[0];
             rangeClone.endContainer = startEl.children[0].childNodes[0];
             rangeClone.endOffset = rangeClone.endOffset - rangeClone.startOffset
@@ -139,9 +146,10 @@ function Editor(settings) {
             while(startEl != endEl) {
                 let str = startEl.textContent
                 let textStart = str.substring(0, offset);
-                let textToBold = str.substring(offset, str.length - 1);
+                let textToBold = str.substring(offset, str.length);
                 startEl.innerHTML = 
                     `${textStart}<span style="font-weight: bold; color: black;">${textToBold}</span>`;
+                    //textToBold podatne na XSS
                 if(offset != 0){
                     rangeClone.startContainer = startEl.children[0].childNodes[0];
                 }
@@ -150,8 +158,9 @@ function Editor(settings) {
             }
             let str = endEl.textContent;
             let textStart = str.substring(0, range.endOffset);
-            let textEnd = str.substring(range.endOffset, str.length - 1);
+            let textEnd = str.substring(range.endOffset, str.length);
             startEl.innerHTML = `<span style="font-weight: bold; color: black;">${textStart}</span>${textEnd}`;
+            //textToBold podatne na XSS
             rangeClone.endContainer = startEl.children[0].childNodes[0];
         }
 
@@ -173,7 +182,7 @@ function Editor(settings) {
     var isElement = (node) => 
         node.nodeType === Node.ELEMENT_NODE ?  true : false
     
-    var getSelection = () => {
+    var getSelection = () => { // <- to jest wazne!
         let selection = editor.ownerDocument.getSelection().getRangeAt(0)
 
         let startNode = getElementFromNode(selection.startContainer)
@@ -197,7 +206,6 @@ function Editor(settings) {
     var setSelection = (newSelection) => {
         let selection = editor.ownerDocument.getSelection()
         let range = document.createRange()
-
         range.setStart(
             newSelection.startNode.childNodes[0], 
             newSelection.startOffset
@@ -223,46 +231,61 @@ function Editor(settings) {
             node.dataset.type === 'text')  
                 ? true : false
 
-/* OD TEGO MIEJSCA ZACZĄĆ */
-    var addLine = (selection) => {
-        let startNode = selection.startNode,
-         endNode = selection.endNode,
-         startOffset = selection.startOffset,
-         endOffset = selection.endOffset;
+    var addLine = (selection) => { 
+        deleteFromSelection(selection);
+        
+        let node   = selection.startNode,
+            offset = selection.startOffset
+        
+        let blockSelection = node.parentElement
 
-        if(!(startNode == endNode && startOffset == endOffset )) {
-            deleteFromSelection(selection)
-            
+        if(blockSelection.lastElementChild == node && offset == node.textContent.length) {
+            return addEmptyLine(selection)
         }
 
-        let blockSelection = startNode.parentElement
-        if(blockSelection.lastElementChild == startNode) {
-            if(startOffset == startNode.textContent.length) {
-                addEmptyLine(selection)
-            } else {
+        let currNode = node.nextElementSibling
+        let nodeList = []
 
-            }
-        }else{
-            let currNode = startNode.nextElementSibling
-            let nodeList = []
-
-            while(currNode != null) {
-                nodeList.push(currNode)
-                let next = currNode.nextElementSibling
-                blockSelection.removeChild(currNode)
-                currNode = next
-            }
-
-            let block = document.createElement('p')
-            block.dataset.type = 'text'
-            block.innerHTML = `<p data-type="block>${nodeList.map((node) => node.outerHTML).join('') }</p>`
-            insertAfter(block, startNode.parentElement)
-
-
+        while(currNode != null) {
+            nodeList.push(currNode)
+            let next = currNode.nextElementSibling
+            blockSelection.removeChild(currNode)
+            currNode = next
         }
+        
+        let block = document.createElement('p')
+        block.dataset.type = 'block'
 
+        let tempNode = document.createElement('span')
+        
+        for(let i = 0; i < node.style.length; i++)
+            tempNode.style[node.style.item(i)] = node.style[node.style.item(i)]
+
+        
+
+        tempNode.textContent = node.textContent.substring(
+          selection.startOffset,
+          node.textContent.length
+        );
+
+        node.textContent = node.textContent.substring(
+            0, selection.startOffset
+        )
+
+        block.innerHTML =
+          `${tempNode.textContent && tempNode.outerHTML }` +
+          nodeList.map((node) => node.outerHTML).join();
+
+        insertAfter(block, node.parentElement)
+        setSelection({
+            startBlock: block,
+            endBlock: block,
+            startNode: block.firstElementChild,
+            endNode: block.firstElementChild,
+            startOffset: 0,
+            endOffset: 0
+        })
     }
-
 
 
     var addEmptyLine = (selection) => {
@@ -284,67 +307,96 @@ function Editor(settings) {
         })
     }
 
-
-    /* OD TEGO MIEJSCA ZACZAĆ */
-    /* !!!!! */
     var deleteFromSelection = (selection) => {
-        let currBlock =
-        selection.startBlock == selection.endBlock
-            ? selection.startBlock
-            : selection.startBlock.nextElementSibling;
-
-        while (currBlock != selection.endBlock) {
-        let next = currBlock.nextElementSibling;
-        editor.removeChild(currBlock);
-        currBlock = next;
-        }
-
-        let currNode = 
-            selection.startNode == selection.endNode
-                ? selection.startNode
-                : selection.startNode.nextElementSibling
-
-        if(selection.startBlock == selection.endBlock) {
-            while (currNode != selection.endNode) {
-                let next = currNode.nextElementSibling;
-                selection.startBlock.removeChild(currNode);
-                currNode = next;
-            }
-        } else {
-            let startNode = selection.startNode
-            let endNode = selection.startBlock.lastElementChild
-
-            let currNode = startNode.nextElementSibling
-
-
-            while (currNode != null ) {
-                let next = currNode.nextElementSibling;
-                selection.startBlock.removeChild(currNode);
-                currNode = next;
+        if(!selection.isCollapsed) {
+            let setNode = true
+            let currBlock =
+                selection.startBlock == selection.endBlock
+                    ? selection.startBlock
+                    : selection.startBlock.nextElementSibling;
+            
+            while (currBlock != selection.endBlock) {
+                let next = currBlock.nextElementSibling;
+                editor.removeChild(currBlock);
+                currBlock = next;
             }
 
-
-            startNode = selection.endBlock.firstElementChild;
-            endNode = selection.endNode
-
-            currNode = startNode
+            let currNode = 
+                selection.startNode == selection.endNode 
+                    ? selection.startNode 
+                    : selection.startNode.nextElementSibling 
                 
-            while (currNode != endNode) {
-                let next = currNode.nextElementSibling;
-                selection.endBlock.removeChild(currNode);
-                currNode = next;
+            if (selection.startBlock == selection.endBlock ){
+                if(selection.startNode == selection.endNode){
+                    let str = selection.startNode.textContent.substring(
+                      0,
+                      selection.startOffset
+                    ); 
+
+                    str += selection.startNode.textContent.substring(
+                        selection.endOffset,
+                        selection.startNode.textContent.length
+                    )
+                    setNode = false
+                    selection.startNode.textContent = str
+                    setSelection({
+                        startBlock: selection.endBlock,
+                        endBlock: selection.endBlock,
+                        startNode: selection.endNode,
+                        endNode: selection.endNode,
+                        startOffset: selection.startOffset,
+                        endOffset: selection.startOffset,
+                    });
+                }else {
+                    while (currNode != selection.endNode) {
+                        let next = currNode.nextElementSibling
+                        selection.startBlock.removeChild(currNode)
+                        currNode = next
+                    }
+                }
+            } else {
+                let startNode = selection.startNode
+                let endNode = selection.startBlock.lastElementChild
+
+                let currNode = startNode.nextElementSibling
+
+                while (currNode != null ){
+                    let next = currNode.nextElementSibling;
+                    selection.startBlock.removeChild(currNode);
+                    currNode = next;
+                }
+
+                startNode = selection.endBlock.firstElementChild;
+                endNode = selection.endNode
+
+                currNode = startNode
+
+                while (currNode != endNode) {
+                    let next = currNode.nextElementSibling;
+                    selection.endBlock.removeChild(currNode);
+                    currNode = next;
+                }
+            }
+
+            if(setNode) {
+                let startContent = selection.startNode.textContent
+                let endContent = selection.endNode.textContent
+
+                let startNode = selection.startNode
+                let endNode = selection.endNode
+                startNode.textContent = startContent.substring(0, selection.startOffset);
+                endNode.textContent = endContent.substring(selection.endOffset, endNode.textContent.length)
+
+                setSelection({
+                    startBlock: selection.endBlock,
+                    endBlock: selection.endBlock,
+                    startNode: selection.endNode,
+                    endNode: selection.endNode,
+                    startOffset: 0,
+                    endOffset: 0
+                })
             }
         }
-
-        let startContent = selection.startNode.textContent
-        let endContent = selection.endNode.textContent
-
-        let startNode = selection.startNode
-        let endNode = selection.endNode
-
-        startNode.textContent = startContent.substring(0, selection.startOffset)
-        endNode.textContent = endContent.substring(selection.endOffset, endNode.textContent.length)
-
     }
     /* End Utils */
 
@@ -363,30 +415,12 @@ function Editor(settings) {
 
             case 'Enter':
                 e.preventDefault()
-                let selection = getSelection()
-
-                if(!selection.isCollapsed){
-                    deleteFromSelection(selection)
-                    setSelection({
-                        startNode: selection.startNode,
-                        endNode: selection.startNode,
-                        startOffset: selection.startNode.textContent.length,
-                        endOffset: selection.startNode.textContent.length,
-                    });
-                    addLine(getSelection());
-                } else {
-                    addEmptyLine(getSelection());
-                }
-                
+                addLine(getSelection());
             default:
                 break;
         }
     })
 
-    editor.addEventListener('keyup', (e) => {
-        cursor.el = window.getSelection().getRangeAt(0).startContainer;
-        cursor.offset = window.getSelection().getRangeAt(0).startOffset;
-    })
 
     editor.addEventListener('focus', (e) => {
         if (editor.children[0] == placeholderTag) {
