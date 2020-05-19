@@ -102,29 +102,198 @@ function Editor(settings) {
         }
     }
 
-
     let bold = document.getElementById("bold")
 
-// OD TEGO MOMENTU ZACZAĆ!!!!
+
     bold.addEventListener('click', (e) => {
-        let selection = getSelection()// <- getSelection?
+        let selection = getSelection()
+        if(selection.startBlock === selection.endBlock) {
+            if(selection.startNode === selection.endNode) {
+                if(selection.startOffset === 0 && 
+                    selection.endOffset === selection.startNode.textContent.length
+                ) {
+                    return selection.startNode.style.fontWeight = 'bold'
+                }
+                if(selection.startOffset === 0) {
+                    if(selection.startNode.style.bold === 'bold'){
+                        return selection.startNode.style.bold = ''
+                    }
 
-        let startEl = selection.startNode
-        let endEl = selection.endNode
+                    let boldNode = createNode(selection.startNode.style)
+                    boldNode.style.fontWeight = 'bold';
 
-        //nazewnictwo z selection
+                    let resNode = createNode(selection.startNode.style)
+                    selection.startNode.replaceWith(boldNode)
 
-        let rangeClone = {
-            startOffset: selection.startOffset,
-            endOffset: selection.endOffset,
-            startNode: startEl,
-            endNode: endEl,
-            startBlock: startEl.parentElement,
-            endBlock: endEl.parentElement,
-        };
+                    boldNode.textContent = selection.startNode.textContent.substring(
+                        selection.startOffset, 
+                        selection.endOffset
+                    )
 
-        if(startEl === endEl){
-            console.log("bold")
+                    resNode.textContent = selection.startNode.textContent.substring(
+                      selection.endOffset,
+                      selection.startNode.textContent.length
+                    )
+
+                    insertAfter(resNode, boldNode)
+
+                    return setSelection({
+                        startNode: boldNode,
+                        endNode: boldNode,
+                        startOffset: 0,
+                        endOffset: boldNode.textContent.length
+                    })
+                }
+
+                if(selection.endOffset === selection.startNode.textContent.length) {
+                    if(selection.startNode.style.bold === 'bold'){
+                        return selection.startNode.style.bold = ''
+                    }
+
+                    let boldNode = createNode(selection.startNode.style)
+                    boldNode.style.fontWeight = 'bold';
+
+                    let resNode = createNode(selection.startNode.style)
+                    selection.startNode.replaceWith(resNode)
+
+                    boldNode.textContent = selection.startNode.textContent.substring(
+                        selection.startOffset, 
+                        selection.endOffset
+                    )
+
+                    resNode.textContent = selection.startNode.textContent.substring(
+                      0,
+                      selection.startOffset
+                    );
+
+                    insertAfter(boldNode, resNode)
+
+                    return setSelection({
+                        startNode: boldNode,
+                        endNode: boldNode,
+                        startOffset: 0,
+                        endOffset: boldNode.textContent.length
+                    })
+                }
+
+                if(selection.startNode.style.bold === 'bold'){
+                    return selection.startNode.style.bold = ''
+                }
+
+                let boldNode = createNode(selection.startNode.style)
+                boldNode.style.fontWeight = 'bold';
+
+                let resStartNode = createNode(selection.startNode.style)
+                let resEndNode = createNode(selection.startNode.style);
+
+                boldNode.textContent = selection.startNode.textContent.substring(
+                    selection.startOffset, 
+                    selection.endOffset
+                )
+
+                resStartNode.textContent = selection.startNode.textContent.substring(
+                    0,
+                    selection.startOffset
+                );
+
+                resEndNode.textContent = selection.startNode.textContent.substring(
+                  selection.endOffset,
+                  selection.startNode.textContent.length
+                );
+
+                selection.startNode.replaceWith(resStartNode);
+                insertAfter(boldNode, resStartNode);
+                insertAfter(resEndNode, boldNode)
+
+                return setSelection({
+                    startNode: boldNode,
+                    endNode: boldNode,
+                    startOffset: 0,
+                    endOffset: boldNode.textContent.length
+                })
+
+            } else {
+                let isBold = false
+                let currNode = selection.startNode 
+
+                while(currNode != selection.endNode.nextElementSibling) {
+                    if(currNode.style.fontWeight === 'bold') {
+                        currNode.style.fontWeight = ''
+                        isBold = true
+                    }
+                    currNode = currNode.nextElementSibling
+                }
+
+                if(isBold) return
+
+                currNode = selection.startNode.nextElementSibling;   
+                
+                while(currNode != selection.endNode) {
+                    currNode.style.fontWeight = 'bold'
+                    currNode = currNode.nextElementSibling;
+                }
+
+                let boldNode = null
+
+                if(selection.startOffset != 0) {
+                    boldNode = createNode(selection.startNode.style)
+                    boldNode.style.fontWeight = 'bold';
+
+                    let resNode = createNode(selection.startNode.style)
+                    selection.startNode.replaceWith(resNode)
+
+                    boldNode.textContent = selection.startNode.textContent.substring(
+                        selection.startOffset,
+                        selection.startNode.textContent.length
+                    );
+
+                    resNode.textContent = selection.startNode.textContent.substring(
+                        0,
+                        selection.startOffset
+                    );
+
+                    insertAfter(boldNode, resNode)
+                }else {
+                    selection.startNode.style.fontWeight = 'bold'
+                    boldNode = selection.startNode
+                }
+
+                let newSelection = {
+                    startNode: boldNode,
+                    startOffset: 0
+                }
+                
+                if(selection.endOffset != selection.endNode.textContent.length){
+                    boldNode = createNode(selection.endNode.style)
+                    boldNode.style.fontWeight = 'bold';
+
+                    resNode = createNode(selection.endNode.style)
+                    
+                    boldNode.textContent = selection.endNode.textContent.substring(
+                        0, 
+                        selection.endOffset
+                    )
+
+                    resNode.textContent = selection.endNode.textContent.substring(
+                        selection.endOffset,
+                        selection.endNode.textContent.length
+                    );
+
+                    selection.endNode.replaceWith(boldNode);
+                    insertAfter(resNode, boldNode)
+                    newSelection.endNode = boldNode;
+                }else {
+                    selection.endNode.style.fontWeight = 'bold'
+                    newSelection.endNode = selection.endNode;
+                }
+
+                
+                newSelection.endOffset = selection.endOffset
+                setSelection(newSelection)
+            }
+        } else {
+//OD TEGO MIEJSCA ZACZAĆ
+        }/*
             let str = startEl.textContent
             let textStart = str.substring(0, rangeClone.startOffset)
             let textEnd = str.substring(
@@ -163,7 +332,6 @@ function Editor(settings) {
             //textToBold podatne na XSS
             rangeClone.endContainer = startEl.children[0].childNodes[0];
         }
-
         let newRange = new Range()
         newRange.setStart(rangeClone.startContainer, 0)
         newRange.setEnd(rangeClone.endContainer, rangeClone.endOffset);
@@ -171,7 +339,7 @@ function Editor(settings) {
         let nselection = window.getSelection()
         nselection.removeAllRanges()
         nselection.addRange(newRange)
-
+        */
     })
 
 

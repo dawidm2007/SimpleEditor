@@ -17,6 +17,18 @@ function elementWithChilds(type = 'p', content = []){
 }
 
 
+function createNode(style) {
+    let node = document.createElement('span');
+
+    for (let i = 0; i < style.length; i++) {
+        node.style[style[i]] = style[style[i]];
+    }
+    
+    node.dataset.type = 'text'
+
+    return node
+}
+
 /*
     element('p', [{type: 'span', content: 'tekst1'}])
     string
