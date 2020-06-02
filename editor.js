@@ -104,11 +104,239 @@ function Editor(settings) {
 
     let bold = document.getElementById("bold")
 
-    function unBold(selection) {
+    function unBoldSelection(selection) {
+        if (selection.startBlock === selection.endBlock) {
+          setSelection(
+            unBoldBlock({
+              element: selection.startBlock,
+              startNode: selection.startNode,
+              endNode: selection.endNode,
+              startOffset: selection.startOffset,
+              endOffset: selection.endOffset,
+            })
+          );
+        } else {
+          let currBlock =
+            selection.startBlock === selection.endBlock
+              ? selection.startBlock
+              : selection.startBlock.nextElementSibling;
 
+          while (selection.endBlock != currBlock) {
+            unBoldBlock({
+              element: currBlock,
+              startNode: currBlock.firstElementChild,
+              endNode: currBlock.lastElementChild,
+              startOffset: 0,
+              endOffset: currBlock.lastElementChild.textContent.length,
+            });
+
+            currBlock = currBlock.nextElementSibling;
+          }
+
+          let startSelection = unBoldBlock({
+            element: selection.startBlock,
+            startNode: selection.startNode,
+            endNode: selection.startBlock.lastElementChild,
+            startOffset: selection.startOffset,
+            endOffset: selection.startBlock.lastElementChild.textContent.length,
+          });
+
+          let endSelecition = unBoldBlock({
+            element: selection.endBlock,
+            startNode: selection.endBlock.firstElementChild,
+            endNode: selection.endNode,
+            startOffset: 0,
+            endOffset: selection.endOffset,
+          });
+
+          setSelection({
+            startNode: startSelection.startNode,
+            endNode: endSelecition.endNode,
+            startOffset: startSelection.startOffset,
+            endOffset: endSelecition.endOffset,
+          });
+        }
     }
 
-    
+    function unBoldBlock(block){
+        let currNode =
+          block.startNode == block.endNode
+            ? block.startNode
+            : block.startNode.nextElementSibling;
+
+        let prevNode = null
+        let same = true
+
+        while (currNode != block.endNode) {
+
+          let unBoldedNode = unBoldNode({
+              element: currNode,
+              startOffset: 0,
+              endOffset: currNode.textContent.length,
+              length: currNode.textContent.length
+          }).startNode
+
+          if(prevNode && unBoldedNode.style.length == prevNode.style.length){
+            for(let i = 0; i < prevNode.style.length; i++) {
+                let currStyleName = prevNode.style[i]
+                if(!(unBoldedNode.style[currStyleName] == prevNode.style[currStyleName])) {
+                    same = false
+                }
+            }
+          }else {
+              same = false
+          }
+
+          if(same) {
+            prevNode.textContent += unBoldedNode.textContent
+            block.element.removeChild(unBoldedNode)
+            currNode = prevNode.nextElementSibling
+          }else {
+            prevNode = unBoldedNode
+            currNode = unBoldedNode.nextElementSibling;
+          }
+
+          same = true
+        }
+
+        if (block.startNode === block.endNode) {
+          return unBoldNode({
+            element: block.startNode,
+            startOffset: block.startOffset,
+            endOffset: block.endOffset,
+            length: block.startNode.textContent.length,
+          });
+        } else {
+          let startNode = unBoldNode({
+            element: block.startNode,
+            startOffset: block.startOffset,
+            endOffset: block.startNode.textContent.length,
+            length: block.startNode.textContent.length,
+          });
+
+          let endNode = unBoldNode({
+            element: block.endNode,
+            startOffset: 0,
+            endOffset: block.endOffset,
+            length: block.endNode.textContent.length,
+          });
+
+          return {
+            startNode: startNode.startNode,
+            endNode: endNode.endNode,
+            startOffset: startNode.startOffset,
+            endOffset: endNode.endOffset,
+          };
+        }
+    }
+
+    function unBoldNode(node) {
+        if (node.startOffset === 0 && node.endOffset === node.length) {
+            node.element.style.fontWeight = null;
+            return {
+              startNode: node.element,
+              endNode: node.element,
+              startOffset: 0,
+              endOffset: node.element.textContent.length,
+            };
+        }
+
+        /* return {
+          startNode: node.element,
+          endNode: node.element,
+          startOffset: 0,
+          endOffset: node.element.textContent.length,
+        }; */
+
+        if (node.startOffset === 0) {
+          let bold = createNode(node.element.style);
+          bold.style.fontWeight = null;
+
+          let resNode = createNode(node.element.style);
+          node.element.replaceWith(bold);
+
+          bold.textContent = node.element.textContent.substring(
+            node.startOffset,
+            node.endOffset
+          );
+
+          resNode.textContent = node.element.textContent.substring(
+            node.endOffset,
+            node.length
+          );
+
+          insertAfter(resNode, bold);
+
+          return {
+            startNode: bold,
+            endNode: bold,
+            startOffset: 0,
+            endOffset: bold.textContent.length,
+          };
+        }
+
+        if (node.endOffset === node.length) {
+          let bold = createNode(node.element.style);
+          bold.style.fontWeight = 'bold';
+
+          let resNode = createNode(node.element.style);
+          node.element.replaceWith(resNode);
+
+          bold.textContent = node.element.textContent.substring(
+            node.startOffset,
+            node.endOffset
+          );
+
+          resNode.textContent = node.element.textContent.substring(
+            0,
+            node.startOffset
+          );
+
+          insertAfter(bold, resNode);
+
+          return {
+            startNode: bold,
+            endNode: bold,
+            startOffset: 0,
+            endOffset: bold.textContent.length,
+          };
+        }
+
+        let bold = createNode(node.element.style);
+        bold.style.fontWeight = 'bold';
+
+        let resStartNode = createNode(node.element.style);
+        let resEndNode = createNode(node.element.style);
+
+        bold.textContent = node.element.textContent.substring(
+          node.startOffset,
+          node.endOffset
+        );
+
+        resStartNode.textContent = node.element.textContent.substring(
+          0,
+          node.startOffset
+        );
+
+        resEndNode.textContent = node.element.textContent.substring(
+          node.endOffset,
+          node.length
+        );
+
+        node.element.replaceWith(resStartNode);
+        insertAfter(bold, resStartNode);
+        insertAfter(resEndNode, bold);
+
+        return {
+          startNode: bold,
+          endNode: bold,
+          startOffset: 0,
+          endOffset: bold.textContent.length,
+        };
+        
+    }
+
+
 
      /*
         node {
@@ -127,7 +355,12 @@ function Editor(settings) {
                 : block.startNode.nextElementSibling 
         
         while(currNode != block.endNode) {
-            currNode.style.fontWeight = 'bold'
+            boldNode({
+              element: currNode,
+              startOffset: 0,
+              endOffset: currNode.textContent.length,
+              length: currNode.textContent.length,
+            });
             currNode = currNode.nextElementSibling;
         }
 
@@ -138,13 +371,15 @@ function Editor(settings) {
               endOffset: block.endOffset,
               length: block.startNode.textContent.length,
             })
-        }else {
+        } else {
+
             let startNode = boldNode({
               element: block.startNode,
               startOffset: block.startOffset,
               endOffset: block.startNode.textContent.length,
               length: block.startNode.textContent.length,
             })
+
             let endNode = boldNode({
               element: block.endNode,
               startOffset: 0,
@@ -169,9 +404,11 @@ function Editor(settings) {
         }
     */
     function boldNode(node){
+        
         if (node.startOffset === 0 && node.endOffset === node.length) {
           return (node.element.style.fontWeight = 'bold');
         }
+
         if (node.startOffset === 0) {
           let bold = createNode(node.element.style);
           bold.style.fontWeight = 'bold';
@@ -259,61 +496,92 @@ function Editor(settings) {
         }
     }
 
+    function boldSelection(selection) {
+         if (selection.startBlock === selection.endBlock) {
+           setSelection(
+             boldBlock({
+               element: selection.startBlock,
+               startNode: selection.startNode,
+               endNode: selection.endNode,
+               startOffset: selection.startOffset,
+               endOffset: selection.endOffset,
+             })
+           );
+         } else {
+           let currBlock =
+             selection.startBlock === selection.endBlock
+               ? selection.startBlock
+               : selection.startBlock.nextElementSibling;
+
+           while (selection.endBlock != currBlock) {
+             boldBlock({
+               element: currBlock,
+               startNode: currBlock.firstElementChild,
+               endNode: currBlock.lastElementChild,
+               startOffset: 0,
+               endOffset: currBlock.lastElementChild.textContent.length,
+             });
+
+             currBlock = currBlock.nextElementSibling;
+           }
+
+           let startSelection = boldBlock({
+             element: selection.startBlock,
+             startNode: selection.startNode,
+             endNode: selection.startBlock.lastElementChild,
+             startOffset: selection.startOffset,
+             endOffset:
+               selection.startBlock.lastElementChild.textContent.length,
+           });
+
+           let endSelecition = boldBlock({
+             element: selection.endBlock,
+             startNode: selection.endBlock.firstElementChild,
+             endNode: selection.endNode,
+             startOffset: 0,
+             endOffset: selection.endOffset,
+           });
+
+           setSelection({
+             startNode: startSelection.startNode,
+             endNode: endSelecition.endNode,
+             startOffset: startSelection.startOffset,
+             endOffset: endSelecition.endOffset,
+           });
+         }
+    }
+
 //POPRAWIĆ UNBOLD
     bold.addEventListener('click', (e) => {
         let selection = getSelection()
+
+        let bold = true;
         
-        if(selection.startBlock === selection.endBlock){
-            setSelection(
-              boldBlock({
-                element: selection.startBlock,
-                startNode: selection.startNode,
-                endNode: selection.endNode,
-                startOffset: selection.startOffset,
-                endOffset: selection.endOffset,
-              })
-            )
-        }else {
-            let currBlock = 
-                selection.startBlock === selection.endBlock 
-                    ? selection.startBlock
-                    : selection.startBlock.nextElementSibling
+        let currBlock = selection.startBlock
+        let currNode = selection.startNode
+        let endNode = selection.endNode
 
-            while(selection.endBlock != currBlock) { 
-                boldBlock({
-                    element: currBlock,
-                    startNode: currBlock.firstElementChild,
-                    endNode: currBlock.lastElementChild,
-                    startOffset: 0,
-                    endOffset: currBlock.lastElementChild.textContent.length
-                })
+        while(currBlock != selection.endBlock.nextElementSibling) {
 
-                currBlock = currBlock.nextElementSibling
+            currBlock == selection.endBlock 
+                ? endNode = selection.endNode
+                : endNode = currBlock.lastElementChild
+        
+            while(currNode != endNode.nextElementSibling) {
+                if(currNode.style.fontWeight == 'bold'){
+                    //return unBoldSelection(selection)
+                    bold = false
+                }
+                currNode = currNode.nextElementSibling
             }
 
-            let startSelection = boldBlock({
-              element: selection.startBlock,
-              startNode: selection.startNode,
-              endNode: selection.startBlock.lastElementChild,
-              startOffset: selection.startOffset,
-              endOffset: selection.startBlock.lastElementChild.textContent.length,
-            });
-
-            let endSelecition = boldBlock({
-              element: selection.endBlock,
-              startNode: selection.endBlock.firstElementChild,
-              endNode: selection.endNode,
-              startOffset: 0,
-              endOffset: selection.endOffset,
-            });
-
-            setSelection({
-              startNode: startSelection.startNode,
-              endNode: endSelecition.endNode,
-              startOffset: startSelection.startOffset,
-              endOffset: endSelecition.endOffset,
-            });
+            currBlock = currBlock.nextElementSibling
+            if(currBlock) currNode = currBlock.firstElementChild
         }
+
+        if(bold) boldSelection(selection)
+        else unBoldSelection(selection)
+       
     })
 
 
