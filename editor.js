@@ -3,6 +3,8 @@ function Editor(settings) {
   let placeholderTag = null
   let cursor = { el: null, offset: 0 }
 
+  let menu = new MicroMenu(this, editor)
+
 /*   
   {
       editor.setAttribute('contenteditable', 'true');
@@ -102,247 +104,200 @@ function Editor(settings) {
       }
   }
 
-  let bold = document.getElementById("bold")
+  
+
+
+  /*
+    @function: unModifySelection (
+      @selction: object,
+      @modifire: object
+    )
+  */
 
   function unModifySelection(selection, modifier) {
-      if (selection.startBlock === selection.endBlock) {
-        setSelection(
-          unModifyBlock(
-            {
-              element: selection.startBlock,
-              startNode: selection.startNode,
-              endNode: selection.endNode,
-              startOffset: selection.startOffset,
-              endOffset: selection.endOffset,
-            },
-            modifier
-          )
-        );
-      } else {
-        let currBlock =
-          selection.startBlock === selection.endBlock
-            ? selection.startBlock
-            : selection.startBlock.nextElementSibling;
-
-        while (selection.endBlock != currBlock) {
-          unModifyBlock({
-            element: currBlock,
-            startNode: currBlock.firstElementChild,
-            endNode: currBlock.lastElementChild,
-            startOffset: 0,
-            endOffset: currBlock.lastElementChild.textContent.length,
-          }, modifier);
-
-          currBlock = currBlock.nextElementSibling;
-        }
-
-        let startSelection = unModifyBlock({
+    //if only one block selected only, change this block
+    if (selection.startBlock === selection.endBlock) {
+      let restoreSelection = unModifyBlock(
+        {
           element: selection.startBlock,
           startNode: selection.startNode,
-          endNode: selection.startBlock.lastElementChild,
-          startOffset: selection.startOffset,
-          endOffset: selection.startBlock.lastElementChild.textContent.length,
-        }, modifier);
-
-        let endSelecition = unModifyBlock({
-          element: selection.endBlock,
-          startNode: selection.endBlock.firstElementChild,
           endNode: selection.endNode,
-          startOffset: 0,
+          startOffset: selection.startOffset,
           endOffset: selection.endOffset,
-        }, modifier);
+        },
+        modifier
+      );
+      return setSelection(restoreSelection);
+    }
 
-        setSelection({
-          startNode: startSelection.startNode,
-          endNode: endSelecition.endNode,
-          startOffset: startSelection.startOffset,
-          endOffset: endSelecition.endOffset,
-        });
-      }
+    let currBlock = 
+      (selection.startBlock === selection.endBlock )
+        ? selection.startBlock
+        : selection.startBlock.nextElementSibling
+
+    //unmodify middle blocks
+    while (selection.endBlock != currBlock) {
+      unModifyBlock(
+        {
+          element: currBlock,
+          startNode: currBlock.firstElementChild,
+          endNode: currBlock.lastElementChild,
+          startOffset: 0,
+          endOffset: currBlock.lastElementChild.textContent.length,
+        }, 
+        modifier
+      );
+
+      currBlock = currBlock.nextElementSibling;
+    }
+
+    //unmodify first block
+    let startSelection = unModifyBlock(
+      {
+        element: selection.startBlock,
+        startNode: selection.startNode,
+        endNode: selection.startBlock.lastElementChild,
+        startOffset: selection.startOffset,
+        endOffset: selection.startBlock.lastElementChild.textContent.length,
+      }, 
+      modifier
+    )
+
+    //unmodify first block
+    let endSelecition = unModifyBlock(
+      {
+        element: selection.endBlock,
+        startNode: selection.endBlock.firstElementChild,
+        endNode: selection.endNode,
+        startOffset: 0,
+        endOffset: selection.endOffset,
+      }, 
+      modifier
+    );
+
+    //restore selection
+    setSelection({
+      startNode: startSelection.startNode,
+      endNode: endSelecition.endNode,
+      startOffset: startSelection.startOffset,
+      endOffset: endSelecition.endOffset,
+    });
   }
 
   function unModifyBlock(block, modifier){
-      let currNode =
-        block.startNode == block.endNode
-          ? block.startNode
-          : block.startNode.nextElementSibling;
+    let currNode =
+      block.startNode == block.endNode
+        ? block.startNode
+        : block.startNode.nextElementSibling;
 
-      let prevNode = null
-      let same = true
+    let prevNode = null
+    let same = true
 
-      while (currNode != block.endNode) {
+    while (currNode != block.endNode) {
+      let unModifiedNode = unModifyNode(
+        {
+          element: currNode,
+          startOffset: 0,
+          endOffset: currNode.textContent.length,
+          length: currNode.textContent.length,
+        },
+        modifier
+      ).startNode;
 
-        let unModifiedNode = unModifyNode(
-          {
-            element: currNode,
-            startOffset: 0,
-            endOffset: currNode.textContent.length,
-            length: currNode.textContent.length,
-          },
-          modifier
-        ).startNode;
-
-        if(prevNode && unModifiedNode.style.length == prevNode.style.length){
-          for(let i = 0; i < prevNode.style.length; i++) {
-              let currStyleName = prevNode.style[i]
-              if(!(unModifiedNode.style[currStyleName] == prevNode.style[currStyleName])) {
-                  same = false
-              }
-          }
-        }else {
-            same = false
+      if(prevNode && unModifiedNode.style.length == prevNode.style.length){
+        for(let i = 0; i < prevNode.style.length; i++) {
+            let currStyleName = prevNode.style[i]
+            if(!(unModifiedNode.style[currStyleName] == prevNode.style[currStyleName])) {
+                same = false
+            }
         }
-
-        if(same) {
-          prevNode.textContent += unModifiedNode.textContent;
-          block.element.removeChild(unModifiedNode);
-          currNode = prevNode.nextElementSibling
-        }else {
-          prevNode = unModifiedNode;
-          currNode = unModifiedNode.nextElementSibling;
-        }
-
-        same = true
+      }else {
+          same = false
       }
 
-      if (block.startNode === block.endNode) {
-        return unModifyNode(
-          {
-            element: block.startNode,
-            startOffset: block.startOffset,
-            endOffset: block.endOffset,
-            length: block.startNode.textContent.length,
-          },
-          modifier
-        );
-      } else {
-        let startNode = unModifyNode(
-          {
-            element: block.startNode,
-            startOffset: block.startOffset,
-            endOffset: block.startNode.textContent.length,
-            length: block.startNode.textContent.length,
-          },
-          modifier
-        );
-
-        let endNode = unModifyNode(
-          {
-            element: block.endNode,
-            startOffset: 0,
-            endOffset: block.endOffset,
-            length: block.endNode.textContent.length,
-          }, 
-          modifier
-        );
-
-        return {
-          startNode: startNode.startNode,
-          endNode: endNode.endNode,
-          startOffset: startNode.startOffset,
-          endOffset: endNode.endOffset,
-        };
+      if(same) {
+        prevNode.textContent += unModifiedNode.textContent;
+        block.element.removeChild(unModifiedNode);
+        currNode = prevNode.nextElementSibling
+      }else {
+        prevNode = unModifiedNode;
+        currNode = unModifiedNode.nextElementSibling;
       }
+
+      same = true
+    }
+
+    if (block.startNode === block.endNode) {
+      return unModifyNode(
+        {
+          element: block.startNode,
+          startOffset: block.startOffset,
+          endOffset: block.endOffset,
+          length: block.startNode.textContent.length,
+        },
+        modifier
+      );
+    } else {
+      let startNode = unModifyNode(
+        {
+          element: block.startNode,
+          startOffset: block.startOffset,
+          endOffset: block.startNode.textContent.length,
+          length: block.startNode.textContent.length,
+        },
+        modifier
+      );
+
+      let endNode = unModifyNode(
+        {
+          element: block.endNode,
+          startOffset: 0,
+          endOffset: block.endOffset,
+          length: block.endNode.textContent.length,
+        }, 
+        modifier
+      );
+
+      return {
+        startNode: startNode.startNode,
+        endNode: endNode.endNode,
+        startOffset: startNode.startOffset,
+        endOffset: endNode.endOffset,
+      };
+    }
   }
 
   function unModifyNode(node, modifier) {
-      if (node.startOffset === 0 && node.endOffset === node.length) {
-          node.element.style[modifier.style] = null;
-          return {
-            startNode: node.element,
-            endNode: node.element,
-            startOffset: 0,
-            endOffset: node.element.textContent.length,
-          };
-      }
-
-      /* 
+    if (node.startOffset === 0 && node.endOffset === node.length) {
+        node.element.style[modifier.style] = null;
         return {
           startNode: node.element,
           endNode: node.element,
           startOffset: 0,
           endOffset: node.element.textContent.length,
-        }; 
-      */
-
-      if (node.startOffset === 0) {
-        let modifierNode = createNode(node.element.style);
-        modifierNode.style[modifier.style] = null;
-
-        let resNode = createNode(node.element.style);
-        node.element.replaceWith(modifierNode);
-
-        modifierNode.textContent = node.element.textContent.substring(
-          node.startOffset,
-          node.endOffset
-        );
-
-        resNode.textContent = node.element.textContent.substring(
-          node.endOffset,
-          node.length
-        );
-
-        insertAfter(resNode, modifierNode);
-
-        return {
-          startNode: modifierNode,
-          endNode: modifierNode,
-          startOffset: 0,
-          endOffset: modifierNode.textContent.length,
         };
-      }
+    }
 
-      if (node.endOffset === node.length) {
-        let modifierNode = createNode(node.element.style);
-        modifierNode.style[modifier.style] = null;
+    let modifierNode = createNode(node.element.style);
+    modifierNode.style[modifier.style] = null;
 
-        let resNode = createNode(node.element.style);
-        node.element.replaceWith(resNode);
+    let resNode = createNode(node.element.style);
 
-        modifierNode.textContent = node.element.textContent.substring(
-          node.startOffset,
-          node.endOffset
-        );
-
-        resNode.textContent = node.element.textContent.substring(
-          0,
-          node.startOffset
-        );
-
-        insertAfter(modifierNode, resNode);
-
-        return {
-          startNode: modifierNode,
-          endNode: modifierNode,
-          startOffset: 0,
-          endOffset: modifierNode.textContent.length,
-        };
-      }
-
-      let modifierNode = createNode(node.element.style);
-      modifierNode.style[modifier.style] = null;
-
-      let resStartNode = createNode(node.element.style);
-      let resEndNode = createNode(node.element.style);
+    if (node.startOffset === 0) {
+      
+      node.element.replaceWith(modifierNode);
 
       modifierNode.textContent = node.element.textContent.substring(
         node.startOffset,
         node.endOffset
       );
 
-      resStartNode.textContent = node.element.textContent.substring(
-        0,
-        node.startOffset
-      );
-
-      resEndNode.textContent = node.element.textContent.substring(
+      resNode.textContent = node.element.textContent.substring(
         node.endOffset,
         node.length
       );
 
-      node.element.replaceWith(resStartNode);
-      insertAfter(modifierNode, resStartNode);
-      insertAfter(resEndNode, modifierNode);
+      insertAfter(resNode, modifierNode);
 
       return {
         startNode: modifierNode,
@@ -350,7 +305,59 @@ function Editor(settings) {
         startOffset: 0,
         endOffset: modifierNode.textContent.length,
       };
-      
+    }
+
+    if (node.endOffset === node.length) {
+      node.element.replaceWith(resNode);
+
+      modifierNode.textContent = node.element.textContent.substring(
+        node.startOffset,
+        node.endOffset
+      );
+
+      resNode.textContent = node.element.textContent.substring(
+        0,
+        node.startOffset
+      );
+
+      insertAfter(modifierNode, resNode);
+
+      return {
+        startNode: modifierNode,
+        endNode: modifierNode,
+        startOffset: 0,
+        endOffset: modifierNode.textContent.length,
+      };
+    }
+
+    let resStartNode = createNode(node.element.style);
+    let resEndNode = createNode(node.element.style);
+
+    modifierNode.textContent = node.element.textContent.substring(
+      node.startOffset,
+      node.endOffset
+    );
+
+    resStartNode.textContent = node.element.textContent.substring(
+      0,
+      node.startOffset
+    );
+
+    resEndNode.textContent = node.element.textContent.substring(
+      node.endOffset,
+      node.length
+    );
+
+    node.element.replaceWith(resStartNode);
+    insertAfter(modifierNode, resStartNode);
+    insertAfter(resEndNode, modifierNode);
+
+    return {
+      startNode: modifierNode,
+      endNode: modifierNode,
+      startOffset: 0,
+      endOffset: modifierNode.textContent.length,
+    };   
   }
 
 
@@ -603,7 +610,7 @@ function Editor(settings) {
   }
 
 
-  function toggleModifier(modifier) {
+  this.toggleModifier = function(modifier) {
     let selection = getSelection();
 
      let toModify = true;
@@ -634,13 +641,17 @@ function Editor(settings) {
        unModifySelection(selection, modifier);
   }
 
+  
+
   let italic = document.getElementById("italic")
+  let bold = document.getElementById('bold')
+
   italic.addEventListener('click', (e) => {
-    toggleModifier({ style: 'fontStyle', value: 'italic' });
+    this.toggleModifier({ style: 'fontStyle', value: 'italic' });
   });
 
   bold.addEventListener('click', (e) => {
-      toggleModifier({style: 'fontWeight', value: 'bold'})
+      this.toggleModifier({style: 'fontWeight', value: 'bold'})
   })
 
 
@@ -915,12 +926,12 @@ function Editor(settings) {
   editor.addEventListener('mouseup', (e) => {
     let selection = window.getSelection()
     if(selection.type === 'Range'){
-      
+      menu.show(selection.getRangeAt(0).getBoundingClientRect())
+    }else {
+      menu.hide()
     }
   })
   
-  
-
   return this
 }
 
@@ -928,3 +939,53 @@ var richTextEditor = new Editor({
 editor: document.getElementById('editor'),
 placeholder: 'Rozpocznij pisanie artykułu',
 });
+
+console.log(richTextEditor)
+
+function MicroMenu(editor, element) {
+
+this.menu = document.createElement('div')
+this.menu.style.position = 'absolute';
+this.menu.style.width = '50px';
+this.menu.style.height = '30px';
+this.menu.style.backgroundColor = '#fff';
+this.menu.style.border = 'solid 1px #000';
+this.menu.style.display = 'flex'
+
+let bold = document.createElement('div')
+bold.innerHTML = 'B'
+bold.style.width = '50%';
+bold.style.cursor = 'pointer';
+bold.addEventListener('mousedown', (e) => {
+  e.preventDefault()
+  editor.toggleModifier({ style: 'fontWeight', value: 'bold' });
+})
+
+let italic = document.createElement('div');
+italic.innerHTML = 'I';
+italic.style.width = '50%';
+italic.style.cursor = 'pointer'
+italic.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  editor.toggleModifier({ style: 'fontStyle', value: 'italic' });
+});
+
+this.menu.appendChild(bold)
+this.menu.appendChild(italic);
+
+
+this.menu.style.visibility = 'hidden';
+element.parentElement.appendChild(this.menu);
+
+this.show = function(rect) {
+  this.menu.style.visibility = 'visible';
+  this.menu.style.top = `${rect.top - 30}px`;
+  this.menu.style.left = `${rect.left + (rect.right - rect.left)/2 - 25}px`;
+}
+
+this.hide = function() {
+  this.menu.style.visibility = 'hidden';
+}
+
+return this
+}
