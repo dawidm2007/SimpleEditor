@@ -4,6 +4,8 @@ function Editor(settings) {
   let cursor = { el: null, offset: 0 }
 
   let menu = new MicroMenu(this, editor)
+  let sidebar = new SidebarMenu(this, editor);
+
 
 /*   
   {
@@ -82,26 +84,6 @@ function Editor(settings) {
               cursor.el.style.fontFamily = currentFont;
           }
       });
-
-
-      for (let tag of ['p', 'h1', 'h2', 'h3', 'h4']) {
-          let div = document.createElement('div');
-          div.innerHTML = tag;
-          
-          div.addEventListener('mousedown', (e) => {
-              e.preventDefault();
-
-              let selection = window.getSelection()
-              let node = selection.anchorNode
-
-              while(!isElement(node)) node = node.parentElement
-              while(node.dataset.type != 'block') node = node.parentElement
-
-              node.replaceWith(element(tag, node.innerHTML))
-          });
-
-          document.getElementById('tags').appendChild(div);
-      }
   }
 
   
@@ -609,36 +591,43 @@ function Editor(settings) {
       };
   }
 
+  this.checkModifier = function(modifier) {
+    let selection = getSelection();
+
+    let toModify = true;
+
+    let currBlock = selection.startBlock;
+    let currNode = selection.startNode;
+    let endNode = selection.endNode;
+
+    while (currBlock != selection.endBlock.nextElementSibling) {
+      currBlock == selection.endBlock
+        ? (endNode = selection.endNode)
+        : (endNode = currBlock.lastElementChild);
+
+      while (currNode != endNode.nextElementSibling) {
+        if (currNode.style[modifier.style] == modifier.value) {
+          toModify = false;
+        }
+        currNode = currNode.nextElementSibling;
+      }
+
+      currBlock = currBlock.nextElementSibling;
+      if (currBlock) currNode = currBlock.firstElementChild;
+    }
+
+    return toModify
+  }
 
   this.toggleModifier = function(modifier) {
     let selection = getSelection();
 
-     let toModify = true;
+    
 
-     let currBlock = selection.startBlock;
-     let currNode = selection.startNode;
-     let endNode = selection.endNode;
-
-     while (currBlock != selection.endBlock.nextElementSibling) {
-       currBlock == selection.endBlock
-         ? (endNode = selection.endNode)
-         : (endNode = currBlock.lastElementChild);
-
-       while (currNode != endNode.nextElementSibling) {
-         if (currNode.style[modifier.style] == modifier.value) {
-           toModify = false;
-         }
-         currNode = currNode.nextElementSibling;
-       }
-
-       currBlock = currBlock.nextElementSibling;
-       if (currBlock) currNode = currBlock.firstElementChild;
-     }
-
-     if (toModify)
-       modifySelection(selection, modifier);
-     else
-       unModifySelection(selection, modifier);
+    if (this.checkModifier(modifier))
+      modifySelection(selection, modifier);
+    else
+      unModifySelection(selection, modifier);
   }
 
   
@@ -655,12 +644,7 @@ function Editor(settings) {
   })
 
 
-  /* Utils Functions */
-  var getElementFromNode = (node) => 
-      isElement(node) ? node : node.parentElement
-
-  var isElement = (node) => 
-      node.nodeType === Node.ELEMENT_NODE ?  true : false
+  
   
   var getSelection = () => { // <- to jest wazne!
       let selection = editor.ownerDocument.getSelection().getRangeAt(0)
@@ -681,6 +665,10 @@ function Editor(settings) {
           endOffset: selection.endOffset,
           isCollapsed: editor.ownerDocument.getSelection().isCollapsed
       }
+  }
+
+  this.virtualGetSelection = function() {
+    return getSelection()
   }
 
   var setSelection = (newSelection) => {
@@ -926,6 +914,7 @@ function Editor(settings) {
   editor.addEventListener('mouseup', (e) => {
     let selection = window.getSelection()
     if(selection.type === 'Range'){
+
       menu.show(selection.getRangeAt(0).getBoundingClientRect())
     }else {
       menu.hide()
@@ -940,34 +929,29 @@ editor: document.getElementById('editor'),
 placeholder: 'Rozpocznij pisanie artykułu',
 });
 
-console.log(richTextEditor)
-
 function MicroMenu(editor, element) {
-
 this.menu = document.createElement('div')
-this.menu.style.position = 'absolute';
-this.menu.style.width = '50px';
-this.menu.style.height = '30px';
-this.menu.style.backgroundColor = '#fff';
-this.menu.style.border = 'solid 1px #000';
-this.menu.style.display = 'flex'
+this.menu.classList.add('micro-menu')
+
+let boldModifier = { style: 'fontWeight', value: 'bold' }
+let italicModifier = { style: 'fontStyle', value: 'italic' }
 
 let bold = document.createElement('div')
-bold.innerHTML = 'B'
-bold.style.width = '50%';
-bold.style.cursor = 'pointer';
+bold.innerHTML = '<i class="fas fa-bold"></i>';
+bold.classList.add('item');
 bold.addEventListener('mousedown', (e) => {
   e.preventDefault()
-  editor.toggleModifier({ style: 'fontWeight', value: 'bold' });
+  editor.toggleModifier(boldModifier);
+  this.show(window.getSelection().getRangeAt(0).getBoundingClientRect());
 })
 
 let italic = document.createElement('div');
-italic.innerHTML = 'I';
-italic.style.width = '50%';
-italic.style.cursor = 'pointer'
+italic.innerHTML = '<i class="fas fa-italic"></i>';
+italic.classList.add('item')
 italic.addEventListener('mousedown', (e) => {
   e.preventDefault();
-  editor.toggleModifier({ style: 'fontStyle', value: 'italic' });
+  editor.toggleModifier(italicModifier);
+  this.show(window.getSelection().getRangeAt(0).getBoundingClientRect());
 });
 
 this.menu.appendChild(bold)
@@ -978,9 +962,37 @@ this.menu.style.visibility = 'hidden';
 element.parentElement.appendChild(this.menu);
 
 this.show = function(rect) {
-  this.menu.style.visibility = 'visible';
-  this.menu.style.top = `${rect.top - 30}px`;
-  this.menu.style.left = `${rect.left + (rect.right - rect.left)/2 - 25}px`;
+  let onlyIn = false
+  let select = window.getSelection().getRangeAt(0).commonAncestorContainer 
+  while (select.nodeName != 'body') {
+    if(select == element){
+      onlyIn = true
+      break;
+    }
+
+    select = select.parentElement
+  }
+
+  if(onlyIn){
+    let boldUnactive = editor.checkModifier(boldModifier)
+    let italicUnactive = editor.checkModifier(italicModifier)
+
+    if(!boldUnactive){
+      bold.classList.add('active')
+    } else {
+      bold.classList.remove('active');
+    }
+
+    if (!italicUnactive) {
+      italic.classList.add('active');
+    } else {
+      italic.classList.remove('active');
+    }
+
+    this.menu.style.visibility = 'visible';
+    this.menu.style.top = `${rect.top - 30}px`;
+    this.menu.style.left = `${rect.left + (rect.right - rect.left)/2 - 25}px`;
+  }
 }
 
 this.hide = function() {
@@ -989,3 +1001,57 @@ this.hide = function() {
 
 return this
 }
+
+function SidebarMenu(editor, container) {
+this.menu = document.createElement('div');
+this.menu.classList.add('micro-menu');
+
+
+for (let tag of ['p', 'h1', 'h2', 'h3', 'h4']) {
+    let div = document.createElement('div');
+    div.innerHTML = tag;
+    div.classList.add('item')
+    
+    div.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+
+        let selection = window.getSelection()
+        let node = selection.anchorNode
+
+        while(!isElement(node)) node = node.parentElement
+        while(node.dataset.type != 'block') node = node.parentElement
+
+        node.replaceWith(element(tag, node.innerHTML))
+    });
+
+    this.menu.appendChild(div);
+}
+
+this.show = function (rect) {
+    this.menu.style.visibility = 'visible';
+    this.menu.style.top = `${rect.top}px`;
+    this.menu.style.left = `${ rect.left}px`;
+};
+
+this.hide = function () {
+  this.menu.style.visibility = 'hidden';
+};
+
+{
+  this.menu.style.visibility = 'visible';
+  this.menu.style.top = `0px`;
+  this.menu.style.left = `0px`;
+}
+container.parentElement.appendChild(this.menu);
+
+return this;
+}
+
+
+
+/* Utils Functions */
+var getElementFromNode = (node) => 
+  isElement(node) ? node : node.parentElement
+
+var isElement = (node) => 
+  node.nodeType === Node.ELEMENT_NODE ?  true : false

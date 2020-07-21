@@ -86,3 +86,36 @@ h1, h2, h3, h4 {
 span {
     color: rgba(0,0,0,.4)
 }
+
+.micro-menu {
+    position: absolute;
+    width: 50px;
+    height: 30px;
+    background-color: #fff;
+    border: solid 1px #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.micro-menu .item {
+    width: 50%;
+    height: 100%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: rgba(0,0,0,.2)
+}
+
+.micro-menu .item:hover {
+    color: rgba(0,0,0,.8);
+}
+
+.micro-menu .item.active {
+    color: rgba(0,0,255,.5)
+}
+
+.micro-menu .item.active:hover {
+    color: rgba(0,0,255,.7)
+}
