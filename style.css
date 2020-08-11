@@ -87,7 +87,7 @@ span {
     color: rgba(0,0,0,.4)
 }
 
-.micro-menu {
+.container-editor .micro-menu {
     position: absolute;
     width: 50px;
     height: 30px;
@@ -98,7 +98,17 @@ span {
     align-items: center;
 }
 
-.micro-menu .item {
+.container-editor .sidebar-menu {
+    position: absolute;
+    height: 30px;
+    background-color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.container-editor .item {
     width: 50%;
     height: 100%;
     cursor: pointer;
@@ -108,14 +118,14 @@ span {
     color: rgba(0,0,0,.2)
 }
 
-.micro-menu .item:hover {
+.container-editor .item:hover {
     color: rgba(0,0,0,.8);
 }
 
-.micro-menu .item.active {
+.container-editor .item.active {
     color: rgba(0,0,255,.5)
 }
 
-.micro-menu .item.active:hover {
+.container-editor .item.active:hover {
     color: rgba(0,0,255,.7)
 }

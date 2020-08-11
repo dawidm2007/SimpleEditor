@@ -5,7 +5,7 @@ function Editor(settings) {
 
   let menu = new MicroMenu(this, editor)
   let sidebar = new SidebarMenu(this, editor);
-
+  let hasFocus = false
 
 /*   
   {
@@ -902,6 +902,32 @@ function Editor(settings) {
       }
   })
 
+  editor.addEventListener('focusin', () => {
+    hasFocus = true;
+  });
+
+  editor.addEventListener('focusout', () => {
+    hasFocus = false;
+  })
+
+  editor.ownerDocument.addEventListener('selectionchange', (e) => {
+    if(hasFocus) {
+      let selection = editor.ownerDocument.getSelection()
+      let rect = selection.getRangeAt(0).getBoundingClientRect();
+
+      if(selection.type === 'Range')
+        menu.show(rect);
+      else 
+        menu.hide()
+
+      sidebar.show(rect);
+
+    }else {
+      menu.hide();
+      sidebar.hide();
+    }
+  })
+
   editor.addEventListener('blur', (e) => {
     if (
       editor.children.length == 1 &&
@@ -910,16 +936,6 @@ function Editor(settings) {
       editor.replaceChild(placeholderTag, editor.children[0]);
     }
   });
-
-  editor.addEventListener('mouseup', (e) => {
-    let selection = window.getSelection()
-    if(selection.type === 'Range'){
-
-      menu.show(selection.getRangeAt(0).getBoundingClientRect())
-    }else {
-      menu.hide()
-    }
-  })
   
   return this
 }
@@ -1002,12 +1018,13 @@ this.hide = function() {
 return this
 }
 
+
 function SidebarMenu(editor, container) {
 this.menu = document.createElement('div');
-this.menu.classList.add('micro-menu');
+this.menu.classList.add('sidebar-menu');
 
 
-for (let tag of ['p', 'h1', 'h2', 'h3', 'h4']) {
+for (let tag of ['P', 'H1', 'H2', 'H3', 'H4']) {
     let div = document.createElement('div');
     div.innerHTML = tag;
     div.classList.add('item')
@@ -1016,12 +1033,45 @@ for (let tag of ['p', 'h1', 'h2', 'h3', 'h4']) {
         e.preventDefault();
 
         let selection = window.getSelection()
-        let node = selection.anchorNode
+        let nodeStart = selection.anchorNode;
+        let nodeEnd = selection.focusNode;
 
-        while(!isElement(node)) node = node.parentElement
-        while(node.dataset.type != 'block') node = node.parentElement
+      
+        
 
-        node.replaceWith(element(tag, node.innerHTML))
+        while (!isElement(nodeEnd)) nodeEnd = nodeEnd.parentElement;
+        while (nodeEnd.dataset.type != 'block') nodeEnd = nodeEnd.parentElement;
+
+        while (!isElement(nodeStart)) nodeStart = nodeStart.parentElement;
+        while (nodeStart.dataset.type != 'block') nodeStart = nodeStart.parentElement;
+
+
+        console.log(
+          'start',
+          nodeStart.scrollTop,
+          '\n',
+          'end',
+          nodeEnd.scrollTop
+        );
+
+        if (nodeStart.scrollTop > nodeEnd.scrollTop) {
+          let nodeTemp = nodeStart;
+          nodeStart = nodeEnd;
+          nodeEnd = nodeTemp;
+        }
+
+        /* przywrócić stan selection */
+        let nodeCurr = nodeStart;
+
+    
+        while (nodeCurr != nodeEnd) {
+          let nodeTemp = nodeCurr.nextElementSibling
+          nodeCurr.replaceWith(element(tag, nodeCurr.innerHTML));
+          nodeCurr = nodeTemp;
+        }
+
+        nodeCurr.replaceWith(element(tag, nodeCurr.innerHTML));
+        
     });
 
     this.menu.appendChild(div);
@@ -1030,18 +1080,18 @@ for (let tag of ['p', 'h1', 'h2', 'h3', 'h4']) {
 this.show = function (rect) {
     this.menu.style.visibility = 'visible';
     this.menu.style.top = `${rect.top}px`;
-    this.menu.style.left = `${ rect.left}px`;
+    this.menu.style.left = `${ editor.clientLeft}px`;
 };
 
 this.hide = function () {
   this.menu.style.visibility = 'hidden';
 };
 
-{
+/*{
   this.menu.style.visibility = 'visible';
   this.menu.style.top = `0px`;
   this.menu.style.left = `0px`;
-}
+}*/
 container.parentElement.appendChild(this.menu);
 
 return this;
