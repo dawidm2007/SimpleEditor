@@ -653,7 +653,7 @@ function Editor(settings) {
       startNode = getTextElement(startNode)
       let endNode = getElementFromNode(selection.endContainer)
       endNode = getTextElement(endNode)
-      let startBlock = startNode.parentElement
+      let startBlock = startNode.parentElement;
       let endBlock = endNode.parentElement;
 
       return {
@@ -1033,58 +1033,110 @@ for (let tag of ['P', 'H1', 'H2', 'H3', 'H4']) {
         e.preventDefault();
 
         let selection = window.getSelection()
-        let nodeStart = selection.anchorNode;
-        let nodeEnd = selection.focusNode;
+        let range = selection.getRangeAt(0);
+        let startOffset = range.startOffset;
+        let endOffset = range.endOffset;
+        let nodeStart = range.startContainer;
+        let nodeEnd = range.endContainer;
 
-      
         
 
         while (!isElement(nodeEnd)) nodeEnd = nodeEnd.parentElement;
+
+        while (nodeEnd.dataset.type != 'block' && nodeEnd.dataset.type != 'text') 
+          nodeEnd = nodeEnd.parentElement;
+
+        let endContainer = nodeEnd;
+
         while (nodeEnd.dataset.type != 'block') nodeEnd = nodeEnd.parentElement;
 
+        let endContainerNumber = false;
+
+        if(endContainer.dataset.type = 'text') {
+          endContainerNumber = 1;
+          let currContainer = nodeEnd.firstElementChild;
+          while(currContainer != endContainer) {
+            endContainerNumber++;
+            currContainer = currContainer.nextElementSibling
+          }
+        }
+        
+
         while (!isElement(nodeStart)) nodeStart = nodeStart.parentElement;
+
+        while (nodeStart.dataset.type != 'block' && nodeStart.dataset.type != 'text') 
+          nodeStart = nodeStart.parentElement;
+
+        let startContainer = nodeStart;
+
         while (nodeStart.dataset.type != 'block') nodeStart = nodeStart.parentElement;
 
+        let startContainerNumber = false;
 
-        console.log(
-          'start',
-          nodeStart.scrollTop,
-          '\n',
-          'end',
-          nodeEnd.scrollTop
-        );
-
-        if (nodeStart.scrollTop > nodeEnd.scrollTop) {
-          let nodeTemp = nodeStart;
-          nodeStart = nodeEnd;
-          nodeEnd = nodeTemp;
+        if(startContainer.dataset.type = 'text') {
+          startContainerNumber = 1;
+          let currContainer = nodeStart.firstElementChild;
+          while(currContainer != startContainer) {
+            startContainerNumber++;
+            currContainer = currContainer.nextElementSibling
+          }
         }
-
-        /* przywrócić stan selection */
+        
         let nodeCurr = nodeStart;
-
+        let startBlock = null;
+        let newBlock = null;
     
         while (nodeCurr != nodeEnd) {
           let nodeTemp = nodeCurr.nextElementSibling
-          nodeCurr.replaceWith(element(tag, nodeCurr.innerHTML));
+          newBlock = element(tag, nodeCurr.innerHTML)
+
+          if(!startBlock) {
+            startBlock = newBlock
+          }
+          
+          nodeCurr.replaceWith(newBlock);
           nodeCurr = nodeTemp;
         }
 
-        nodeCurr.replaceWith(element(tag, nodeCurr.innerHTML));
+        let endBlock = element(tag, nodeCurr.innerHTML)
+        if(!startBlock) startBlock = endBlock;
+
+        nodeCurr.replaceWith(endBlock);
+
         
+
+        startContainer = startBlock.firstElementChild;
+        endContainer = endBlock.firstElementChild;
+
+        for(let i = 1; i < startContainerNumber; i++) {
+          startContainer = startContainer.nextElementSibling
+        }
+
+        for(let i = 1; i < endContainerNumber; i++) {
+          endContainer = endContainer.nextElementSibling
+        }
+
+        let newRange = new Range();
+
+        newRange.setStart(startContainer.firstChild, startOffset)
+        newRange.setEnd(endContainer.firstChild, endOffset)
+
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+
     });
 
     this.menu.appendChild(div);
 }
 
 this.show = function (rect) {
-    this.menu.style.visibility = 'visible';
+    this.menu.style.display = 'flex';
     this.menu.style.top = `${rect.top}px`;
-    this.menu.style.left = `${ editor.clientLeft}px`;
+    this.menu.style.left = `${ editor.clientLeft }px`;
 };
 
 this.hide = function () {
-  this.menu.style.visibility = 'hidden';
+  this.menu.style.display = 'none';
 };
 
 /*{
