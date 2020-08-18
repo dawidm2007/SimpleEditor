@@ -1,93 +1,11 @@
 function Editor(settings) {
-  let editor = settings.editor
-  let placeholderTag = null
-  let cursor = { el: null, offset: 0 }
+  let editor = settings.editor;
+  let placeholderTag = null;
+  let cursor = { el: null, offset: 0 };
 
-  let menu = new MicroMenu(this, editor)
+  let menu = new MicroMenu(this, editor);
   let sidebar = new SidebarMenu(this, editor);
-  let hasFocus = false
-
-/*   
-  {
-      editor.setAttribute('contenteditable', 'true');
-      editor.innerHTML = '';
-      placeholderTag = document.createElement('span');
-      placeholderTag.textContent = settings.placeholder;
-      editor.appendChild(placeholderTag);
-  }
-*/
-  {   
-      /* SETUP TOOLBAR */
-
-      let fontSize = document.getElementById('font-size')
-      fontSize.value = 16
-
-      fontSize.addEventListener('input', (e) => {
-          editor.focus()
-          let range = new Range()
-          range.setStart(cursor.el, cursor.offset);
-
-          window.getSelection().removeAllRanges()
-          window.getSelection().addRange(range)
-
-          if(cursor.el.nodeName == '#text'){
-              cursor.el.parentElement.style.fontSize = `${e.target.value}px`
-          }else {
-              cursor.el.style.fontSize = `${e.target.value}px`;
-          }
-      })
-
-      let fonts = [
-        'Calibri',
-        'Bebas Neue',
-        'DejaVu Serif',
-        'Impact',
-        'Segoe Script',
-        'Comic Sans MS',
-        'System',
-      ];
-
-      let currentFont = 'Calibri';
-      let fontList = document.getElementById('font-list');
-
-      for (let font of fonts) {
-        let fontItem = document.createElement('div');
-        fontItem.setAttribute('class', 'font-item');
-        let fontName = document.createElement('h1');
-        fontName.style.fontFamily = font;
-        fontName.textContent = font;
-        fontItem.appendChild(fontName);
-
-        fontItem.addEventListener('mouseover', () => {
-              if (cursor.el.nodeName == '#text') {
-                  cursor.el.parentElement.style.fontFamily = font;
-              } else {
-                  cursor.el.style.fontFamily = font;
-              }
-        });
-
-        fontItem.addEventListener('mousedown', (event) => {
-          event.preventDefault();
-          currentFont = font;
-          let currFont = document.getElementById('font-current');
-          currFont.children[0].style.fontFamily = font;
-          currFont.children[0].textContent = font;
-        });
-
-        fontList.appendChild(fontItem);
-      }
-
-      fontList.addEventListener('mouseleave', () => {
-          if (cursor.el.nodeName == '#text') {
-              cursor.el.parentElement.style.fontFamily = currentFont;
-          } else {
-              cursor.el.style.fontFamily = currentFont;
-          }
-      });
-  }
-
-  
-
+  let hasFocus = false;
 
   /*
     @function: unModifySelection (
@@ -629,22 +547,6 @@ function Editor(settings) {
     else
       unModifySelection(selection, modifier);
   }
-
-  
-
-  let italic = document.getElementById("italic")
-  let bold = document.getElementById('bold')
-
-  italic.addEventListener('click', (e) => {
-    this.toggleModifier({ style: 'fontStyle', value: 'italic' });
-  });
-
-  bold.addEventListener('click', (e) => {
-      this.toggleModifier({style: 'fontWeight', value: 'bold'})
-  })
-
-
-  
   
   var getSelection = () => { // <- to jest wazne!
       let selection = editor.ownerDocument.getSelection().getRangeAt(0)
@@ -947,31 +849,34 @@ placeholder: 'Rozpocznij pisanie artykułu',
 
 function MicroMenu(editor, element) {
 this.menu = document.createElement('div')
+let my_el = document.createElement('div')
+my_el.classList.add('orn');
+
 this.menu.classList.add('micro-menu')
+this.menu.appendChild(my_el);
+let modifiers = [
+  { style: 'fontWeight', value: 'bold' },  
+  { style: 'fontStyle', value: 'italic' }, 
+  { style: 'fontFamily', value: 'monospace', icon: 'code' },
+]
 
-let boldModifier = { style: 'fontWeight', value: 'bold' }
-let italicModifier = { style: 'fontStyle', value: 'italic' }
+let modifier_elements = {}
 
-let bold = document.createElement('div')
-bold.innerHTML = '<i class="fas fa-bold"></i>';
-bold.classList.add('item');
-bold.addEventListener('mousedown', (e) => {
-  e.preventDefault()
-  editor.toggleModifier(boldModifier);
-  this.show(window.getSelection().getRangeAt(0).getBoundingClientRect());
-})
+for(let modifier of modifiers) {
 
-let italic = document.createElement('div');
-italic.innerHTML = '<i class="fas fa-italic"></i>';
-italic.classList.add('item')
-italic.addEventListener('mousedown', (e) => {
-  e.preventDefault();
-  editor.toggleModifier(italicModifier);
-  this.show(window.getSelection().getRangeAt(0).getBoundingClientRect());
-});
+  let modifier_element = document.createElement('div')
+  modifier_element.innerHTML = `<i class="fas fa-${modifier.icon ? modifier.icon : modifier.value}"></i>`;
+  modifier_element.classList.add('item');
+  modifier_element.addEventListener('mousedown', (e) => {
+    e.preventDefault()
+    editor.toggleModifier(modifier);
+    this.show(window.getSelection().getRangeAt(0).getBoundingClientRect());
+  })
 
-this.menu.appendChild(bold)
-this.menu.appendChild(italic);
+  modifier_elements[modifier.value] = modifier_element
+
+  this.menu.appendChild(modifier_element)
+}
 
 
 this.menu.style.visibility = 'hidden';
@@ -990,23 +895,16 @@ this.show = function(rect) {
   }
 
   if(onlyIn){
-    let boldUnactive = editor.checkModifier(boldModifier)
-    let italicUnactive = editor.checkModifier(italicModifier)
-
-    if(!boldUnactive){
-      bold.classList.add('active')
-    } else {
-      bold.classList.remove('active');
-    }
-
-    if (!italicUnactive) {
-      italic.classList.add('active');
-    } else {
-      italic.classList.remove('active');
+    for(let modifier of modifiers) {
+      if(!editor.checkModifier(modifier)){
+        modifier_elements[modifier.value].classList.add('active')
+      } else {
+        modifier_elements[modifier.value].classList.remove('active');
+      }
     }
 
     this.menu.style.visibility = 'visible';
-    this.menu.style.top = `${rect.top - 30}px`;
+    this.menu.style.top = `${rect.top - 41}px`;
     this.menu.style.left = `${rect.left + (rect.right - rect.left)/2 - 25}px`;
   }
 }
@@ -1020,9 +918,20 @@ return this
 
 
 function SidebarMenu(editor, container) {
-this.menu = document.createElement('div');
+this.menu_micro = document.createElement('div');
+this.menu_micro.classList.add('micro-menu')
+let my_el = document.createElement('div')
+my_el.classList.add('orn');
+
+this.menu_micro.appendChild(my_el);
+
+this.menu = document.createElement('div')
 this.menu.classList.add('sidebar-menu');
 
+let block = document.createElement('div');
+block.innerHTML = 'P';
+
+this.menu.appendChild(block);
 
 for (let tag of ['P', 'H1', 'H2', 'H3', 'H4']) {
     let div = document.createElement('div');
@@ -1126,13 +1035,16 @@ for (let tag of ['P', 'H1', 'H2', 'H3', 'H4']) {
 
     });
 
-    this.menu.appendChild(div);
+    this.menu_micro.appendChild(div);
 }
+
+this.menu.appendChild(this.menu_micro);
 
 this.show = function (rect) {
     this.menu.style.display = 'flex';
     this.menu.style.top = `${rect.top}px`;
-    this.menu.style.left = `${ editor.clientLeft }px`;
+    console.log(rect)
+    this.menu.style.left = `${ 100 }px`;
 };
 
 this.hide = function () {

@@ -89,13 +89,44 @@ span {
 
 .container-editor .micro-menu {
     position: absolute;
-    width: 50px;
     height: 30px;
     background-color: #fff;
     border: solid 1px #000;
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.container-editor .micro-menu::before {
+   
+}
+
+.micro-menu .orn {
+    position: absolute;
+    content: '';
+    box-sizing: border-box;
+    top: 100%;
+    left: calc(50% - 5px);
+    width: 10px;
+    height: 10px;
+    border: 5px solid black;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+}
+
+.micro-menu .orn:before {
+    position: absolute;
+    content: '';
+    box-sizing: border-box;
+    top: -10px;
+    left: -9px;
+    width: 18px;
+    height: 18px;
+    border: 9px solid white;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 9px solid transparent;
 }
 
 .container-editor .sidebar-menu {
@@ -107,9 +138,12 @@ span {
     align-items: center;
 }
 
+.sidebar-menu .micro-menu {
+    top: -100%;
+}
 
-.container-editor .item {
-    width: 50%;
+.container-editor .micro-menu .item {
+    width: 25px;
     height: 100%;
     cursor: pointer;
     display: flex;
@@ -118,11 +152,11 @@ span {
     color: rgba(0,0,0,.2)
 }
 
-.container-editor .item:hover {
+.container-editor .micro-menu .item:hover {
     color: rgba(0,0,0,.8);
 }
 
-.container-editor .item.active {
+.container-editor .micro-menu .item.active {
     color: rgba(0,0,255,.5)
 }
 
