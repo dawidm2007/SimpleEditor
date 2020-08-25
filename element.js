@@ -9,6 +9,7 @@ function element(type = 'span', content = '', data = 'block') {  //return string
 
 function elementWithChilds(type = 'p', content = []){
     let container = document.createElement(type)
+    container.dataset.type = 'block';
 
     for(el of content)
         container.appendChild(element(el.type, el.content, el.data))   

@@ -1,3 +1,9 @@
+body {
+    background: #e2e1e1;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, sans-serif;
+    
+}
+
 p {
     min-height: 16px;
     font-size: 16px;
@@ -61,10 +67,24 @@ h1, h2, h3, h4 {
 }
 
 #editor {
-    width: 80%;
+    width: 720px;
     min-height: 400px;
-    margin: 0 auto;
-    border: 1px solid black;
+    margin: 50px auto;
+    padding: 50px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12),
+                0 1px 2px rgba(0,0,0,0.24);
+}
+
+#editor:active, #editor:focus {
+    outline: thin;
+    box-shadow: 0 14px 28px rgba(0,0,0,0.25),
+                0 10px 10px rgba(0,0,0,0.22);
+    transition: all .3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+#editor p:first-child {
+    margin-top: 0;
 }
 
 .font-size {
@@ -84,7 +104,7 @@ h1, h2, h3, h4 {
 
 
 span {
-    color: rgba(0,0,0,.4)
+    color: rgba(0,0,0,.79)
 }
 
 .container-editor .micro-menu {
@@ -132,14 +152,23 @@ span {
 .container-editor .sidebar-menu {
     position: absolute;
     height: 30px;
-    background-color: #fff;
     display: none;
     justify-content: center;
     align-items: center;
 }
 
 .sidebar-menu .micro-menu {
-    top: -100%;
+    top: -120%;
+    opacity: 0;
+
+    transition: all .3s ease-in-out;
+}
+.sidebar-menu .micro-menu:hover {
+    opacity: 1;
+}
+
+.sidebar-menu .sidebar-btn:hover ~ .micro-menu {
+    opacity: 1;
 }
 
 .container-editor .micro-menu .item {
@@ -163,3 +192,9 @@ span {
 .container-editor .item.active:hover {
     color: rgba(0,0,255,.7)
 }
+
+br {
+    width: 1px;
+    display: block;
+}
+

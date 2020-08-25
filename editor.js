@@ -779,7 +779,7 @@ function Editor(settings) {
       switch (e.key) {
           case 'Backspace':                
               if(editor.children.length == 1 && editor.children[0].textContent.length == 0) {
-                      e.preventDefault()
+                e.preventDefault()
               }
           break;
 
@@ -905,6 +905,7 @@ this.show = function(rect) {
 
     this.menu.style.visibility = 'visible';
     this.menu.style.top = `${rect.top - 41}px`;
+    
     this.menu.style.left = `${rect.left + (rect.right - rect.left)/2 - 25}px`;
   }
 }
@@ -920,6 +921,7 @@ return this
 function SidebarMenu(editor, container) {
 this.menu_micro = document.createElement('div');
 this.menu_micro.classList.add('micro-menu')
+
 let my_el = document.createElement('div')
 my_el.classList.add('orn');
 
@@ -929,7 +931,8 @@ this.menu = document.createElement('div')
 this.menu.classList.add('sidebar-menu');
 
 let block = document.createElement('div');
-block.innerHTML = 'P';
+block.classList.add('sidebar-btn');
+block.innerHTML = '<icon class="icon-software-paragraph" style="font-size: 20px">';
 
 this.menu.appendChild(block);
 
@@ -1041,10 +1044,14 @@ for (let tag of ['P', 'H1', 'H2', 'H3', 'H4']) {
 this.menu.appendChild(this.menu_micro);
 
 this.show = function (rect) {
+    let editor_element = document.getElementById('editor');
     this.menu.style.display = 'flex';
     this.menu.style.top = `${rect.top}px`;
-    console.log(rect)
-    this.menu.style.left = `${ 100 }px`;
+    this.menu.style.left = `${ editor_element.getBoundingClientRect().x - 70 }px`;
+    
+
+    console.log('getBoundingClientRect', editor_element.getBoundingClientRect().x);
+    
 };
 
 this.hide = function () {
